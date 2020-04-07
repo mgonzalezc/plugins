@@ -78,7 +78,7 @@ WillFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> 
 #pragma mark Private functions
 
 static void setShortcutItems(NSArray *items) {
-    if (@available(iOS 9.0, *)) {
+    if (@available(iOS 9.1, *)) {
         NSMutableArray *newShortcuts = [[NSMutableArray alloc] init];
         
         for (id item in items) {
@@ -90,14 +90,23 @@ static void setShortcutItems(NSArray *items) {
     }
 }
 
-API_AVAILABLE(ios(9.0))
+API_AVAILABLE(ios(9.1))
 static UIApplicationShortcutItem *deserializeShortcutItem(NSDictionary *serialized) {
     
-    UIApplicationShortcutIcon *icon =
-    [serialized[@"icon"] isKindOfClass:[NSNull class]]
-    ? nil
-    : [UIApplicationShortcutIcon iconWithTemplateImageName:serialized[@"icon"]];
+    NSString *iconAsString = serialized[@"icon"];
+    UIApplicationShortcutIcon *icon = nil;
     
+    if ([iconAsString isEqualToString:@"icon_quick_action_search"]) {
+        icon = [UIApplicationShortcutIcon iconWithType:UIApplicationShortcutIconTypeSearch];
+    } else if ([iconAsString isEqualToString:@"icon_quick_action_play"]) {
+        icon = [UIApplicationShortcutIcon iconWithType:UIApplicationShortcutIconTypePlay];
+    } else if ([iconAsString isEqualToString:@"icon_quick_action_favorites"]) {
+        icon = [UIApplicationShortcutIcon iconWithType:UIApplicationShortcutIconTypeLove];
+    } else {
+        icon = [iconAsString isKindOfClass:[NSNull class]] ? nil
+        : [UIApplicationShortcutIcon iconWithTemplateImageName:serialized[@"icon"]];
+    }
+
     return [[UIApplicationShortcutItem alloc] initWithType:serialized[@"type"]
                                             localizedTitle:serialized[@"localizedTitle"]
                                          localizedSubtitle:nil
