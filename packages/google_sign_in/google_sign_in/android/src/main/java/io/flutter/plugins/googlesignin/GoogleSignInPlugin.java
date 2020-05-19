@@ -241,7 +241,7 @@ public class GoogleSignInPlugin implements MethodCallHandler, FlutterPlugin, Act
    * completed (either successfully or in error). This class provides no synchronization constructs
    * to guarantee such behavior; callers are responsible for providing such guarantees.
    */
-  public static final class Delegate implements IDelegate, PluginRegistry.ActivityResultListener {
+  public static class Delegate implements IDelegate, PluginRegistry.ActivityResultListener {
     private static final int REQUEST_CODE_SIGNIN = 53293;
     private static final int REQUEST_CODE_RECOVER_AUTH = 53294;
     @VisibleForTesting static final int REQUEST_CODE_REQUEST_SCOPE = 53295;
@@ -444,7 +444,7 @@ public class GoogleSignInPlugin implements MethodCallHandler, FlutterPlugin, Act
 
       GoogleSignInAccount account = googleSignInWrapper.getLastSignedInAccount(context);
       if (account == null) {
-        result.error(ERROR_REASON_SIGN_IN_REQUIRED, "No account to grant scopes.", null);
+        finishWithError(ERROR_REASON_SIGN_IN_REQUIRED, "No account to grant scopes.");
         return;
       }
 
@@ -458,7 +458,7 @@ public class GoogleSignInPlugin implements MethodCallHandler, FlutterPlugin, Act
       }
 
       if (wrappedScopes.isEmpty()) {
-        result.success(true);
+        finishWithSuccess(true);
         return;
       }
 
@@ -657,30 +657,5 @@ public class GoogleSignInPlugin implements MethodCallHandler, FlutterPlugin, Act
           return false;
       }
     }
-  }
-}
-
-/**
- * A wrapper object that calls static method in GoogleSignIn.
- *
- * <p>Because GoogleSignIn uses static method mostly, which is hard for unit testing. We use this
- * wrapper class to use instance method which calls the corresponding GoogleSignIn static methods.
- *
- * <p>Warning! This class should stay true that each method calls a GoogleSignIn static method with
- * the same name and same parameters.
- */
-class GoogleSignInWrapper {
-
-  GoogleSignInAccount getLastSignedInAccount(Context context) {
-    return GoogleSignIn.getLastSignedInAccount(context);
-  }
-
-  boolean hasPermissions(GoogleSignInAccount account, Scope scope) {
-    return GoogleSignIn.hasPermissions(account, scope);
-  }
-
-  void requestPermissions(
-      Activity activity, int requestCode, GoogleSignInAccount account, Scope[] scopes) {
-    GoogleSignIn.requestPermissions(activity, requestCode, account, scopes);
   }
 }

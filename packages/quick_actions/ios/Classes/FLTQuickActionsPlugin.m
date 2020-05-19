@@ -25,32 +25,33 @@ static NSString *const CHANNEL_NAME = @"plugins.flutter.io/quick_actions";
 }
 
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
-  if ([call.method isEqualToString:@"setShortcutItems"]) {
-    setShortcutItems(call.arguments);
-    result(nil);
-  } else if ([call.method isEqualToString:@"clearShortcutItems"]) {
-    if (@available(iOS 9.0, *)) {
-        [UIApplication sharedApplication].shortcutItems = @[];
+  if (@available(iOS 9.0, *)) {
+    if ([call.method isEqualToString:@"setShortcutItems"]) {
+      _setShortcutItems(call.arguments);
+      result(nil);
+    } else if ([call.method isEqualToString:@"clearShortcutItems"]) {
+      [UIApplication sharedApplication].shortcutItems = @[];
+      result(nil);
+    } else if ([call.method isEqualToString:@"getLaunchAction"]) {
+      result(nil);
+    } else {
+      result(FlutterMethodNotImplemented);
     }
-    result(nil);
-  } else if ([call.method isEqualToString:@"getLaunchAction"]) {
-    result(self.shortcutType); // This is used when the app is killed and open the first time via quick actions
-    self.shortcutType = nil;
   } else {
-    result(FlutterMethodNotImplemented);
+    NSLog(@"Shortcuts are not supported prior to iOS 9.");
+    result(nil);
   }
 }
 
 - (void)dealloc {
-  [self.channel setMethodCallHandler:nil];
-  self.channel = nil;
+  [_channel setMethodCallHandler:nil];
+  _channel = nil;
 }
 
 - (BOOL)application:(UIApplication *)application
     performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem
-               completionHandler:(void (^)(BOOL succeeded))completionHandler API_AVAILABLE(ios(9.0)){
-  NSLog(@"Called via shortcuts: %@", shortcutItem.type);
-  self.shortcutType = shortcutItem.type;
+               completionHandler:(void (^)(BOOL succeeded))completionHandler
+    API_AVAILABLE(ios(9.0)) {
   [self.channel invokeMethod:@"launch" arguments:shortcutItem.type];
   
   return YES;
@@ -77,25 +78,23 @@ WillFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> 
 
 #pragma mark Private functions
 
-static void setShortcutItems(NSArray *items) {
-    if (@available(iOS 9.1, *)) {
-        NSMutableArray *newShortcuts = [[NSMutableArray alloc] init];
-        
-        for (id item in items) {
-            UIApplicationShortcutItem *shortcut = deserializeShortcutItem(item);
-            [newShortcuts addObject:shortcut];
-        }
-        
-        [UIApplication sharedApplication].shortcutItems = newShortcuts;
-    }
+NS_INLINE void _setShortcutItems(NSArray *items) API_AVAILABLE(ios(9.0)) {
+  NSMutableArray<UIApplicationShortcutItem *> *newShortcuts = [[NSMutableArray alloc] init];
+
+  for (id item in items) {
+    UIApplicationShortcutItem *shortcut = _deserializeShortcutItem(item);
+    [newShortcuts addObject:shortcut];
+  }
+
+  [UIApplication sharedApplication].shortcutItems = newShortcuts;
 }
 
-API_AVAILABLE(ios(9.1))
-static UIApplicationShortcutItem *deserializeShortcutItem(NSDictionary *serialized) {
-    
+NS_INLINE UIApplicationShortcutItem *_deserializeShortcutItem(NSDictionary *serialized)
+    API_AVAILABLE(ios(9.0)) {
+
     NSString *iconAsString = serialized[@"icon"];
     UIApplicationShortcutIcon *icon = nil;
-    
+
     if ([iconAsString isEqualToString:@"icon_quick_action_search"]) {
         icon = [UIApplicationShortcutIcon iconWithType:UIApplicationShortcutIconTypeSearch];
     } else if ([iconAsString isEqualToString:@"icon_quick_action_play"]) {
